@@ -17,22 +17,35 @@
     (let [fields (for [[k v] x] [k v (s/schema-name v)])]
       (->SchemaDefinition
         name
-        (->> fields (remove last) (map butlast))
+        (->> fields (map butlast))
         (->> fields (keep last))))))
 
 (defn extract-relations [{:keys [name relations]}]
   (map (fn [r] [name r]) relations))
 
+(defn explain-key [key]
+  (if (s/specific-key? key)
+    (str
+      (s/explicit-schema-key key)
+      (if (s/optional-key? key) "?"))
+    (s/explain key)))
+
+(defn explain-value [value]
+  (or (s/schema-name value) (s/explain value)))
+
 ;;
 ;; DOT
 ;;
 
-(defn- dot-node [{:keys [name fields]}]
-  (let [fields (for [[k v] fields] (str "+ " k (if (s/optional-key? k) "?") " : " (s/explain v)))]
+(defn- dot-class [{:keys [name fields]}]
+  (let [fields (for [[k v] fields] (str "+ " (explain-key k) " : " (explain-value v)))]
     (str name " [label = \"{" name "|" (str/join "\\l" fields) "\\l}\"]")))
 
 (defn- dot-relation [[from to]]
   (str from " -> " to " [dirType = \"forward\"]"))
+
+(defn- dot-node [node data]
+  (str node "[" (str/join ", " (map (fn [[k v]] (str (name k) "=" (pr-str v))) data)) "]"))
 
 (defn- dot-package [definitions]
   (let [relations (mapcat extract-relations definitions)]
@@ -42,9 +55,14 @@
         ["digraph {"
          "fontname = \"Bitstream Vera Sans\""
          "fontsize = 12"
-         "node [fontname = \"Bitstream Vera Sans\" fontsize = 12 shape = \"record\"]"
-         "edge [arrowhead = \"diamond\"]"]
-        (map dot-node definitions)
+         (dot-node "node" {:fontname "Bitstream Vera Sans"
+                           :fontsize 12
+                           :shape "record"
+                           :style "filled"
+                           :fillcolor "#ccffcc"
+                           :color "#558855"})
+         (dot-node "edge" {:arrowhead "diamond"})]
+        (map dot-class definitions)
         (map dot-relation relations)
         ["}"]))))
 
@@ -62,15 +80,3 @@
 
 (defn view-ns [ns]
   (->> ns dot-ns viz/dot->image viz/view-image))
-
-(s/defschema Country {:name s/Str
-                      :code (s/enum :FI :PO)})
-
-(s/defschema Address {:street s/Str
-                      :country Country})
-
-(s/defschema User {:id s/Int
-                   :name s/Str
-                   (s/optional-key :address) Address})
-
-(view-ns *ns*)

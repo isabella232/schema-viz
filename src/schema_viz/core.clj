@@ -14,11 +14,12 @@
 
 (defn schema-and-relations [x]
   (when-let [name (s/schema-name x)]
-    (let [fields (for [[k v] x] [k v (s/schema-name v)])]
+    (let [fields (for [[k v] x :let [v (if (or (sequential? v) (set? v)) (first v) v)]]
+     [k v (s/schema-name v)])]
       (->SchemaDefinition
         name
         (->> fields (map butlast))
-        (->> fields (keep last))))))
+        (->> fields (keep last) set)))))
 
 (defn extract-relations [{:keys [name relations]}]
   (map (fn [r] [name r]) relations))
@@ -38,7 +39,7 @@
 ;;
 
 (defn- dot-class [{:keys [name fields]}]
-  (let [fields (for [[k v] fields] (str "+ " (explain-key k) " : " (explain-value v)))]
+  (let [fields (for [[k v] fields] (str "+ " (explain-key k) " " (explain-value v)))]
     (str name " [label = \"{" name "|" (str/join "\\l" fields) "\\l}\"]")))
 
 (defn- dot-relation [[from to]]
@@ -78,5 +79,7 @@
 ;; View
 ;;
 
-(defn view-ns [ns]
-  (->> ns dot-ns viz/dot->image viz/view-image))
+(defn view-ns
+  ([] (view-ns *ns*))
+  ([ns]
+   (->> ns dot-ns viz/dot->image viz/view-image)))

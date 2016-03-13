@@ -1,4 +1,4 @@
-(defproject metosin/schema-viz "0.0.1"
+(defproject metosin/schema-viz "0.1.0-SNAPSHOT"
   :description "Schema visualization using graphviz"
   :url "https://github.com/metosin/schema-viz"
   :license {:name "Eclipse Public License"
@@ -6,6 +6,7 @@
             :distribution :repo
             :comments "same as Clojure"}
   :dependencies [[prismatic/schema "1.0.5"]
+                 [metosin/schema-tools "0.8.0-20160311.093655-5"]
                  [rhizome "0.2.5"]]
   :plugins [[funcool/codeina "0.3.0"]]
 

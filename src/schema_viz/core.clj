@@ -168,3 +168,13 @@
         dot-package
         viz/dot->image
         viz/view-image)))
+
+(defn save-schemas
+  ([file]
+   (save-schemas file *ns*))
+  ([file ns]
+   (-> ns
+       schema-definitions
+       dot-package
+       viz/dot->image
+       (viz/save-image file))))

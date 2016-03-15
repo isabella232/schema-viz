@@ -1,6 +1,8 @@
 ## Unreleased
 
-- `schema-viz.core/visualize-schemas` as the new public api.
+- New public api:
+  - `schema-viz.core/visualize-schemas`
+  - `schema-viz.core/save-schemas` 
 
 ## 0.0.1 (10.3.2016)
 

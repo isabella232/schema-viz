@@ -93,15 +93,20 @@
 (defn- extract-relations [{:keys [name relations]}]
   (map (fn [r] [name r]) relations))
 
+(defn- safe-explain [x]
+  (try
+    (s/explain x)
+    (catch Exception _ x)))
+
 (defn- explain-key [key]
   (if (s/specific-key? key)
     (str
       (s/explicit-schema-key key)
       (if (s/optional-key? key) "?"))
-    (s/explain key)))
+    (safe-explain key)))
 
 (defn- explain-value [value]
-  (or (s/schema-name value) (s/explain value)))
+  (str (or (s/schema-name value) (safe-explain value))))
 
 (defn- schema-definitions [ns]
   (->> ns
@@ -117,12 +122,16 @@
 ;; DOT
 ;;
 
+(defn wrap-quotes [x] (str "\"" x "\""))
+
+(defn wrap-escapes [x] (str/escape x {\> ">", \< "<", \" "\\\""}))
+
 (defn- dot-class [{:keys [name fields]}]
-  (let [fields (for [[k v] fields] (str "+ " (explain-key k) " " (explain-value v)))]
-    (str name " [label = \"{" name "|" (str/join "\\l" fields) "\\l}\"]")))
+  (let [fields (for [[k v] fields] (str "+ " (explain-key k) " " (-> v explain-value wrap-escapes)))]
+    (str (wrap-quotes name) " [label = \"{" name "|" (str/join "\\l" fields) "\\l}\"]")))
 
 (defn- dot-relation [[from to]]
-  (str from " -> " to " [dirType = \"forward\"]"))
+  (str (wrap-quotes from) " -> " (wrap-quotes to) " [dirType = \"forward\"]"))
 
 (defn- dot-node [node data]
   (str node "[" (str/join ", " (map (fn [[k v]] (str (name k) "=" (pr-str v))) data)) "]"))

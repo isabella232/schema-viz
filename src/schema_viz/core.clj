@@ -30,6 +30,7 @@
 (defn- plain-map? [x]
   (and (map? x) (and (not (record? x)))))
 
+;; TODO: fails when named subschema is before unnamed one => do recursively, join names by $?
 (defn- with-named-subschemas [schemas]
   (let [path (atom [])]
     (stw/prewalk
@@ -122,9 +123,9 @@
 ;; DOT
 ;;
 
-(defn wrap-quotes [x] (str "\"" x "\""))
+(defn- wrap-quotes [x] (str "\"" x "\""))
 
-(defn wrap-escapes [x] (str/escape x {\> ">", \< "<", \" "\\\""}))
+(defn- wrap-escapes [x] (str/escape x {\> ">", \< "<", \" "\\\""}))
 
 (defn- dot-class [{:keys [name fields]}]
   (let [fields (for [[k v] fields] (str "+ " (explain-key k) " " (-> v explain-value wrap-escapes)))]

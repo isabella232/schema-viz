@@ -2,13 +2,14 @@
   (:require [clojure.string :as str]
             [schema.core :as s]
             [schema-tools.walk :as stw]
+            [schema-tools.core :as st]
             [rhizome.viz :as viz]))
 
 ;;
 ;; Definitions
 ;;
 
-(defrecord SchemaDefinition [name fields relations])
+(defrecord SchemaDefinition [schema fields relations])
 
 (defrecord SchemaReference [schema]
   s/Schema
@@ -30,17 +31,29 @@
 (defn- plain-map? [x]
   (and (map? x) (and (not (record? x)))))
 
-;; TODO: fails when named subschema is before unnamed one => do recursively, join names by $?
-(defn- with-named-subschemas [schemas]
-  (let [path (atom [])]
-    (stw/prewalk
-      (fn [x]
-        (cond
-          (s/schema-name x) (and (reset! path [(s/schema-name x)]) x)
-          (plain-map? x) (with-meta x {:name (full-name @path)})
-          (map-entry? x) (and (swap! path (fn [[k]] [k (first x)])) x)
-          :else x))
-      schemas)))
+; TODO: does not understand direct nested record values, e.g. (s/maybe (s/maybe {:a s/Str}))
+(defn- named-subschemas [schema]
+  (letfn [(-named-subschemas [path schema]
+            (stw/walk
+              schema
+              (fn [x]
+                (cond
+                  (map-entry? x) (let [[k v] x
+                                       name (s/schema-name (st/schema-value v))]
+                                   [k (-named-subschemas
+                                        (if name [name]
+                                                 (into path
+                                                       [:$
+                                                        (if (s/specific-key? k)
+                                                          (s/explicit-schema-key k)
+                                                          (gensym (pr-str k)))])) v)])
+                  (s/schema-name x) (-named-subschemas [(s/schema-name x)] x)
+                  :else (-named-subschemas path x)))
+              (fn [x]
+                (if (and (plain-map? x) (not (s/schema-name x)))
+                  (with-meta x {:name (full-name path), ::sub-schema? true})
+                  x))))]
+    (-named-subschemas [(s/schema-name schema)] schema)))
 
 (defn- with-sub-schemas-references [schemas]
   (->> schemas
@@ -82,17 +95,17 @@
 (defn- extract-schema-var [x]
   (and (var? x) (s/schema-name @x) @x))
 
-(defn- schema-definition [x]
-  (when-let [name (s/schema-name x)]
-    (let [fields (for [[k v] x :let [peeked (peek-schema v)]]
-                   [k v (s/schema-name peeked)])]
+(defn- schema-definition [schema]
+  (when (s/schema-name schema)
+    (let [fields (for [[k v] schema :let [peeked (peek-schema v)]]
+                   [k v peeked])]
       (->SchemaDefinition
-        name
+        schema
         (->> fields (map butlast))
         (->> fields (keep last) set)))))
 
-(defn- extract-relations [{:keys [name relations]}]
-  (map (fn [r] [name r]) relations))
+(defn- extract-relations [{:keys [schema relations]}]
+  (map (fn [r] [schema r]) relations))
 
 (defn- safe-explain [x]
   (try
@@ -114,7 +127,7 @@
        ns-publics
        vals
        (keep extract-schema-var)
-       with-named-subschemas
+       (map named-subschemas)
        with-sub-schemas-references
        collect-schemas
        (mapv schema-definition)))
@@ -127,17 +140,18 @@
 
 (defn- wrap-escapes [x] (str/escape x {\> ">", \< "<", \" "\\\""}))
 
-(defn- dot-class [{:keys [name fields]}]
-  (let [fields (for [[k v] fields] (str "+ " (explain-key k) " " (-> v explain-value wrap-escapes)))]
-    (str (wrap-quotes name) " [label = \"{" name "|" (str/join "\\l" fields) "\\l}\"]")))
+(defn- dot-class [{:keys [fields?]} {:keys [schema fields]}]
+  (let [{name :name sub-schema? ::sub-schema?} (meta schema)
+        fields (for [[k v] fields] (str "+ " (explain-key k) " " (-> v explain-value wrap-escapes)))]
+    (str (wrap-quotes name) " [label = \"{" name (if fields? (str "|" (str/join "\\l" fields))) "\\l}\"]")))
 
 (defn- dot-relation [[from to]]
-  (str (wrap-quotes from) " -> " (wrap-quotes to) " [dirType = \"forward\"]"))
+  (str (wrap-quotes (s/schema-name from)) " -> " (wrap-quotes (s/schema-name to)) " [dirType = \"forward\"]"))
 
 (defn- dot-node [node data]
   (str node "[" (str/join ", " (map (fn [[k v]] (str (name k) "=" (pr-str v))) data)) "]"))
 
-(defn- dot-package [definitions]
+(defn- dot-package [options definitions]
   (let [relations (mapcat extract-relations definitions)]
     (str/join
       "\n"
@@ -152,7 +166,7 @@
                            :fillcolor "#ccffcc"
                            :color "#558855"})
          (dot-node "edge" {:arrowhead "diamond"})]
-        (map dot-class definitions)
+        (map (partial dot-class options) definitions)
         (map dot-relation relations)
         ["}"]))))
 
@@ -160,22 +174,26 @@
 ;; Visualization
 ;;
 
+(def +defaults+ {:fields? true})
+
 (defn visualize-schemas
   ([]
-   (visualize-schemas *ns*))
-  ([ns]
-   (->> ns
-        schema-definitions
-        dot-package
-        viz/dot->image
-        viz/view-image)))
+   (visualize-schemas {}))
+  ([options]
+   (let [options (merge {:ns *ns*} +defaults+ options)]
+     (->> (:ns options)
+          schema-definitions
+          (dot-package options)
+          viz/dot->image
+          viz/view-image))))
 
 (defn save-schemas
   ([file]
-   (save-schemas file *ns*))
-  ([file ns]
-   (-> ns
-       schema-definitions
-       dot-package
-       viz/dot->image
-       (viz/save-image file))))
+   (save-schemas file {}))
+  ([file options]
+   (let [options (merge {:ns *ns*} +defaults+ options)]
+     (-> (:ns options)
+         schema-definitions
+         (dot-package options)
+         viz/dot->image
+         (viz/save-image file)))))

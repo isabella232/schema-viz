@@ -25,8 +25,11 @@
 ;; Walkers
 ;;
 
+(defn- get-name [x]
+  (name (or (s/schema-name x) x)))
+
 (defn- full-name [path]
-  (->> path (map name) (map str/capitalize) (apply str) symbol))
+  (->> path (map get-name) (map str/capitalize) (apply str) symbol))
 
 (defn- plain-map? [x]
   (and (map? x) (and (not (record? x)))))
@@ -47,13 +50,15 @@
                                                         (if (s/specific-key? k)
                                                           (s/explicit-schema-key k)
                                                           (gensym (pr-str k)))])) v)])
-                  (s/schema-name x) (-named-subschemas [(s/schema-name x)] x)
+                  (s/schema-name x) (-named-subschemas [x] x)
                   :else (-named-subschemas path x)))
               (fn [x]
                 (if (and (plain-map? x) (not (s/schema-name x)))
-                  (with-meta x {:name (full-name path), ::sub-schema? true})
+                  (with-meta x {:name (full-name path)
+                                :ns (s/schema-ns (first path))
+                                ::sub-schema? true})
                   x))))]
-    (-named-subschemas [(s/schema-name schema)] schema)))
+    (-named-subschemas [schema] schema)))
 
 (defn- with-sub-schemas-references [schemas]
   (->> schemas
@@ -140,60 +145,70 @@
 
 (defn- wrap-escapes [x] (str/escape x {\> ">", \< "<", \" "\\\""}))
 
+(defn- dot-relation [[from to]]
+  (str (wrap-quotes (s/schema-name from)) " -> " (wrap-quotes (s/schema-name to))))
+
+(defn- dot-node [node data]
+  (str node " [" (str/join ", " (map (fn [[k v]] (str (name k) "=" (pr-str v))) data)) "]"))
+
 (defn- dot-class [{:keys [fields?]} {:keys [schema fields]}]
   (let [{name :name sub-schema? ::sub-schema?} (meta schema)
         fields (for [[k v] fields] (str "+ " (explain-key k) " " (-> v explain-value wrap-escapes)))]
-    (str (wrap-quotes name) " [label = \"{" name (if fields? (str "|" (str/join "\\l" fields))) "\\l}\"]")))
+    (str (wrap-quotes name) " [label = \"{" name
+         (if fields? (str "|" (str/join "\\l" fields))) "\\l}\""
+         (if sub-schema? ", fillcolor=\"#e6caab\"") "]")))
 
-(defn- dot-relation [[from to]]
-  (str (wrap-quotes (s/schema-name from)) " -> " (wrap-quotes (s/schema-name to)) " [dirType = \"forward\"]"))
-
-(defn- dot-node [node data]
-  (str node "[" (str/join ", " (map (fn [[k v]] (str (name k) "=" (pr-str v))) data)) "]"))
+(defn- dot-graph [data]
+  (str "digraph {\n" (str/join "\n" (apply concat data)) "\n}"))
 
 (defn- dot-package [options definitions]
   (let [relations (mapcat extract-relations definitions)]
-    (str/join
-      "\n"
-      (concat
-        ["digraph {"
-         "fontname = \"Bitstream Vera Sans\""
-         "fontsize = 12"
-         (dot-node "node" {:fontname "Bitstream Vera Sans"
-                           :fontsize 12
-                           :shape "record"
-                           :style "filled"
-                           :fillcolor "#ccffcc"
-                           :color "#558855"})
-         (dot-node "edge" {:arrowhead "diamond"})]
-        (map (partial dot-class options) definitions)
-        (map dot-relation relations)
-        ["}"]))))
+    #_(./aprint
+      (reduce
+        (fn [acc {:keys [schema] :as definition}]
+          (update acc (s/schema-ns schema) (fn [x]
+                                             (conj (or x []) (s/schema-name schema)))))
+        {}
+        definitions))
+
+    (dot-graph
+      [[(dot-node "node" {:fontname "Bitstream Vera Sans"
+                          :fontsize 12
+                          :shape "record"
+                          :style "filled"
+                          :fillcolor "#fff0cd"
+                          :color "#000000"})
+        (dot-node "edge" {:arrowhead "diamond"})]
+       (mapv (partial dot-class options) definitions)
+       (mapv dot-relation relations)])))
 
 ;;
 ;; Visualization
 ;;
 
-(def +defaults+ {:fields? true})
+(def ^:private +defaults+ {:fields? true})
 
-(defn visualize-schemas
-  ([]
-   (visualize-schemas {}))
-  ([options]
-   (let [options (merge {:ns *ns*} +defaults+ options)]
-     (->> (:ns options)
-          schema-definitions
-          (dot-package options)
-          viz/dot->image
-          viz/view-image))))
-
-(defn save-schemas
-  ([file]
-   (save-schemas file {}))
-  ([file options]
-   (let [options (merge {:ns *ns*} +defaults+ options)]
-     (-> (:ns options)
+(defn- process-schemas
+  [f options]
+  (let [options (merge {:ns *ns*} +defaults+ options)
+        ns (:ns options)]
+    (when-not (= ns *ns*)
+      (require ns))
+    (->> ns
          schema-definitions
          (dot-package options)
+         #_(#(do (println %) %))
          viz/dot->image
-         (viz/save-image file)))))
+         f)))
+
+;;
+;; Public API
+;;
+
+(defn visualize-schemas
+  ([] (visualize-schemas {}))
+  ([options] (process-schemas viz/view-image options)))
+
+(defn save-schemas
+  ([file] (save-schemas file {}))
+  ([file options] (process-schemas #(viz/save-image % file) options)))

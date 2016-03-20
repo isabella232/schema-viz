@@ -34,6 +34,10 @@
 (defn- plain-map? [x]
   (and (map? x) (and (not (record? x)))))
 
+; supporting Clojure 1.7
+(defn- -map-entry? [x]
+  (instance? java.util.Map$Entry x))
+
 ; TODO: does not understand direct nested record values, e.g. (s/maybe (s/maybe {:a s/Str}))
 (defn- named-subschemas [schema]
   (letfn [(-named-subschemas [path schema]
@@ -41,15 +45,15 @@
               schema
               (fn [x]
                 (cond
-                  (map-entry? x) (let [[k v] x
-                                       name (s/schema-name (st/schema-value v))]
-                                   [k (-named-subschemas
-                                        (if name [name]
-                                                 (into path
-                                                       [:$
-                                                        (if (s/specific-key? k)
-                                                          (s/explicit-schema-key k)
-                                                          (gensym (pr-str k)))])) v)])
+                  (-map-entry? x) (let [[k v] x
+                                        name (s/schema-name (st/schema-value v))]
+                                    [k (-named-subschemas
+                                         (if name [name]
+                                                  (into path
+                                                        [:$
+                                                         (if (s/specific-key? k)
+                                                           (s/explicit-schema-key k)
+                                                           (gensym (pr-str k)))])) v)])
                   (s/schema-name x) (-named-subschemas [x] x)
                   :else (-named-subschemas path x)))
               (fn [x]

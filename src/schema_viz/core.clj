@@ -86,12 +86,12 @@
     (->> @name->schema vals (map first))))
 
 ;; TODO: currently just looks for a first schema, support multiple schemas: s/cond-pre & friends
-(defn- peek-schema [schema]
+(defn- peek-schema [schema f]
   (let [peeked (atom nil)]
     (->> schema
          (stw/prewalk
            (fn [x]
-             (if (and (plain-map? x) (s/schema-name x))
+             (if (and (plain-map? x) (f x))
                (do (if-not @peeked (reset! peeked x)) x)
                x))))
     @peeked))
@@ -105,7 +105,8 @@
 
 (defn- schema-definition [schema]
   (when (s/schema-name schema)
-    (let [fields (for [[k v] schema :let [peeked (peek-schema v)]]
+    (let [fields (for [[k v] (peek-schema schema identity)
+                       :let [peeked (peek-schema v s/schema-name)]]
                    [k v peeked])]
       (->SchemaDefinition
         schema

@@ -163,14 +163,6 @@
 
 (defn- dot-package [options definitions]
   (let [relations (mapcat extract-relations definitions)]
-    #_(./aprint
-      (reduce
-        (fn [acc {:keys [schema] :as definition}]
-          (update acc (s/schema-ns schema) (fn [x]
-                                             (conj (or x []) (s/schema-name schema)))))
-        {}
-        definitions))
-
     (dot-graph
       [[(dot-node "node" {:fontname "Bitstream Vera Sans"
                           :fontsize 12
@@ -197,7 +189,6 @@
     (->> ns
          schema-definitions
          (dot-package options)
-         #_(#(do (println %) %))
          viz/dot->image
          f)))
 
@@ -206,9 +197,15 @@
 ;;
 
 (defn visualize-schemas
+  "Displays a schema visualization in an window. Takes an optional
+  options map:
+
+  :ns           - namespace symbol to be visualized (default *ns*)
+  :fields?      - boolean, wether to show schema fields (default true)"
   ([] (visualize-schemas {}))
   ([options] (process-schemas viz/view-image options)))
 
 (defn save-schemas
+  "Same as visualize-schemas, but saves the result into a file."
   ([file] (save-schemas file {}))
   ([file options] (process-schemas #(viz/save-image % file) options)))

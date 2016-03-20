@@ -10,37 +10,42 @@ Install [Graphviz](http://www.graphviz.org/).
 
 ## Usage
 
+Public functions in `schema-viz.core`:
+* `visualize-schemas` to display schemas from a namespace in a window.
+* `save-schemas` - same as visualize-schemas, but saves the result into a file.
+
+Both take an optional options-map to configure the rendering process.
+See docs for details.
+
 ```clj
 (require '[schema-viz.core :as svc])
 (require '[schema.core :as s])
 
 (s/defschema Country
-  {:name (s/enum :fi :po)})
+  {:name (s/enum :FI :PO)})
 
 (s/defschema Burger
   {:name s/Str
    (s/optional-key :description) s/Str
    :origin Country
-   :prize (s/constrained Long pos?)
+   :price (s/constrained s/Int pos?)
    s/Keyword s/Any})
 
 (s/defschema OrderLine
   {:burger Burger
-   :amount (s/constrained s/Int pos?)})
+   :amount s/Int})
 
 (s/defschema Order
   {:lines [OrderLine]
    :delivery {:status s/Bool
               :address {:street s/Str
                         :zip s/Int
-                        :country Country}
-              :recipient {:name s/Str
-                          :phone (s/maybe s/Int)}}})
+                        :country Country}}})
 
 (svc/visualize-schemas)
 ```
 
-Produces the following visualization:
+Produces the following:
 
 ![Schema](dev-resources/schema.png)
 

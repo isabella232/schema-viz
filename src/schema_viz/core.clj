@@ -38,7 +38,6 @@
 (defn- -map-entry? [x]
   (instance? java.util.Map$Entry x))
 
-; TODO: does not understand direct nested record values, e.g. (s/maybe (s/maybe {:a s/Str}))
 (defn- named-subschemas [schema]
   (letfn [(-named-subschemas [path schema]
             (stw/walk
@@ -86,7 +85,7 @@
     ;; TODO: handle duplicate names here
     (->> @name->schema vals (map first))))
 
-;; TODO: dummy implementation, just looks for a first schema
+;; TODO: currently just looks for a first schema, support multiple schemas: s/cond-pre & friends
 (defn- peek-schema [schema]
   (let [peeked (atom nil)]
     (->> schema

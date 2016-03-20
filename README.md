@@ -11,8 +11,8 @@ Install [Graphviz](http://www.graphviz.org/).
 ## Usage
 
 Public functions in `schema-viz.core`:
-* `visualize-schemas` to display schemas from a namespace in a window.
-* `save-schemas` - same as visualize-schemas, but saves the result into a file.
+* `visualize-schemas` displays schemas from a namespace in a window.
+* `save-schemas` saves schema visualization in a file.
 
 Both take an optional options-map to configure the rendering process.
 See docs for details.

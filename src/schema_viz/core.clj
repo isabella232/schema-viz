@@ -41,7 +41,6 @@
 (defn- named-subschemas [schema]
   (letfn [(-named-subschemas [path schema]
             (stw/walk
-              schema
               (fn [x]
                 (cond
                   (-map-entry? x) (let [[k v] x
@@ -60,7 +59,8 @@
                   (with-meta x {:name (full-name path)
                                 :ns (s/schema-ns (first path))
                                 ::sub-schema? true})
-                  x))))]
+                  x))
+              schema))]
     (-named-subschemas [schema] schema)))
 
 (defn- with-sub-schemas-references [schemas]

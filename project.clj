@@ -6,7 +6,7 @@
             :distribution :repo
             :comments "same as Clojure"}
   :dependencies [[prismatic/schema "1.0.5"]
-                 [metosin/schema-tools "0.8.0"]
+                 [metosin/schema-tools "0.9.0"]
                  [rhizome "0.2.5"]]
   :plugins [[funcool/codeina "0.3.0"]]
 

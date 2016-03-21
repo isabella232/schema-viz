@@ -3,7 +3,8 @@
             [schema.core :as s]
             [schema-tools.walk :as stw]
             [schema-tools.core :as st]
-            [rhizome.viz :as viz]))
+            [rhizome.viz :as viz]
+            [clojure.pprint :as pprint]))
 
 ;;
 ;; Definitions
@@ -17,13 +18,29 @@
     (s/spec schema))
   (explain [_]
     (s/schema-name schema))
+  clojure.lang.IDeref
+  (deref [this]
+    this)
   stw/WalkableSchema
   (-walk [this inner outer]
     (outer (with-meta (->SchemaReference (inner (:schema this))) (meta this)))))
 
+(defrecord RecursiveReference [schema]
+  s/Schema
+  (spec [_]
+    (s/spec schema))
+  (explain [_]
+    (list 'recursive (s/explain schema)))
+  stw/WalkableSchema
+  (-walk [this inner outer]
+    (outer (with-meta (->RecursiveReference (inner (:schema this))) (meta this)))))
+
 ;;
 ;; Walkers
 ;;
+
+(defn- deref? [x]
+  (instance? clojure.lang.IDeref x))
 
 (defn- get-name [x]
   (name (or (s/schema-name x) x)))
@@ -91,9 +108,10 @@
     (->> schema
          (stw/prewalk
            (fn [x]
-             (if (and (plain-map? x) (f x))
-               (do (if-not @peeked (reset! peeked x)) x)
-               x))))
+             (let [naked (if (deref? x) @x x)]
+               (if (and (plain-map? naked) (f naked))
+                 (do (if-not @peeked (reset! peeked naked)) x)
+                 x)))))
     @peeked))
 
 ;;
@@ -116,10 +134,16 @@
 (defn- extract-relations [{:keys [schema relations]}]
   (map (fn [r] [schema r]) relations))
 
-(defn- safe-explain [x]
+(defn- safe-explain [schema]
   (try
-    (s/explain x)
-    (catch Exception _ x)))
+    (s/explain
+      (stw/postwalk
+        (fn [x]
+          (if (instance? schema.core.Recursive x)
+            (->RecursiveReference (st/schema-value x))
+            x))
+        schema))
+    (catch Exception _ schema)))
 
 (defn- explain-key [key]
   (if (s/specific-key? key)

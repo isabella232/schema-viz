@@ -3,12 +3,15 @@
             [schema.core :as s]))
 
 (s/defschema Country
-  {:name (s/enum :fi :po)})
+  {:name (s/enum :fi :po)
+   :neighbors [(s/recursive #'Country)]})
+
+(s/recursive #'Country)
 
 (s/defschema Burger
   {:name s/Str
    (s/optional-key :description) s/Str
-   :origin Country
+   :origin (s/maybe Country)
    :price (s/constrained s/Int pos?)
    s/Keyword s/Any})
 
@@ -21,6 +24,7 @@
                         :country Country}
               :recipient {:name s/Str
                           :phone s/Str}}})
+
 (comment
 
   (svc/visualize-schemas)

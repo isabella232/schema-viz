@@ -1,4 +1,4 @@
-## 0.1.0-SNAPSHOT
+## 0.1.0 (22.3.2016)
 
 - New public api:
   - `schema-viz.core/visualize-schemas`

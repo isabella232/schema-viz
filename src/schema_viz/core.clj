@@ -3,8 +3,7 @@
             [schema.core :as s]
             [schema-tools.walk :as stw]
             [schema-tools.core :as st]
-            [rhizome.viz :as viz]
-            [clojure.pprint :as pprint]))
+            [rhizome.viz :as viz]))
 
 ;;
 ;; Definitions
@@ -24,16 +23,6 @@
   stw/WalkableSchema
   (-walk [this inner outer]
     (outer (with-meta (->SchemaReference (inner (:schema this))) (meta this)))))
-
-(defrecord RecursiveReference [schema]
-  s/Schema
-  (spec [_]
-    (s/spec schema))
-  (explain [_]
-    (list 'recursive (s/explain schema)))
-  stw/WalkableSchema
-  (-walk [this inner outer]
-    (outer (with-meta (->RecursiveReference (inner (:schema this))) (meta this)))))
 
 ;;
 ;; Walkers
@@ -134,13 +123,17 @@
 (defn- extract-relations [{:keys [schema relations]}]
   (map (fn [r] [schema r]) relations))
 
+(defn- explainable [explanation]
+  (reify s/Schema (explain [_] explanation)))
+
 (defn- safe-explain [schema]
   (try
     (s/explain
+      ;; replace Schemas with ones producing cleaner explanation
       (stw/postwalk
         (fn [x]
           (if (instance? schema.core.Recursive x)
-            (->RecursiveReference (st/schema-value x))
+            (explainable (list 'recursive (s/explain (st/schema-value x))))
             x))
         schema))
     (catch Exception _ schema)))
@@ -149,7 +142,7 @@
   (if (s/specific-key? key)
     (str
       (s/explicit-schema-key key)
-      (if (s/optional-key? key) "?"))
+      (if (s/optional-key? key) "(?)"))
     (safe-explain key)))
 
 (defn- explain-value [value]

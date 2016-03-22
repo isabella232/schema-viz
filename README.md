@@ -2,7 +2,7 @@
 
 Plumatic [Schema](https://github.com/plumatic/schema) visualization using Graphviz.
 
-[![Clojars Project](http://clojars.org/metosin/schema-viz/latest-version.svg)](http://clojars.org/metosin(schema-viz))
+[![Clojars Project](http://clojars.org/metosin/schema-viz/latest-version.svg)](http://clojars.org/metosin/schema-viz)
 
 ## Prerequisites
 

@@ -22,12 +22,13 @@ See docs for details.
 (require '[schema.core :as s])
 
 (s/defschema Country
-  {:name (s/enum :FI :PO)})
+  {:name (s/enum :FI :PO)
+   :neighbors [(s/recursive #'Country)]})
 
 (s/defschema Burger
   {:name s/Str
    (s/optional-key :description) s/Str
-   :origin Country
+   :origin (s/maybe Country)
    :price (s/constrained s/Int pos?)
    s/Keyword s/Any})
 
@@ -37,7 +38,7 @@ See docs for details.
 
 (s/defschema Order
   {:lines [OrderLine]
-   :delivery {:status s/Bool
+   :delivery {:delivered s/Bool
               :address {:street s/Str
                         :zip s/Int
                         :country Country}}})

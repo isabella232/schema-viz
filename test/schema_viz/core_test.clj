@@ -3,10 +3,8 @@
             [schema.core :as s]))
 
 (s/defschema Country
-  {:name (s/enum :fi :po)
+  {:name (s/enum :FI :PO)
    :neighbors [(s/recursive #'Country)]})
-
-(s/recursive #'Country)
 
 (s/defschema Burger
   {:name s/Str
@@ -15,15 +13,16 @@
    :price (s/constrained s/Int pos?)
    s/Keyword s/Any})
 
-(s/defschema Order
+(s/defschema OrderLine
   {:burger Burger
-   :amount s/Int
+   :amount s/Int})
+
+(s/defschema Order
+  {:lines [OrderLine]
    :delivery {:delivered s/Bool
               :address {:street s/Str
                         :zip s/Int
-                        :country Country}
-              :recipient {:name s/Str
-                          :phone s/Str}}})
+                        :country Country}}})
 
 (comment
 

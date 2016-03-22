@@ -1,6 +1,6 @@
 # Schema-viz [![Build Status](https://travis-ci.org/metosin/schema-viz.svg?branch=master)](https://travis-ci.org/metosin/schema-viz) [![Dependencies Status](https://jarkeeper.com/metosin/schema-viz/status.svg)](https://jarkeeper.com/metosin/schema-viz)
 
-[Schema](https://github.com/plumatic/schema) visualization using Graphviz.
+Plumatic [Schema](https://github.com/plumatic/schema) visualization using Graphviz.
 
 [![Clojars Project](http://clojars.org/metosin/schema-viz/latest-version.svg)](http://clojars.org/metosin(schema-viz))
 

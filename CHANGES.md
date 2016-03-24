@@ -1,3 +1,11 @@
+## Unreleased
+
+- update dependencies:
+
+```clj
+[prismatic/schema "1.1.0"] is available but we use "1.0.5"
+```
+
 ## 0.1.0 (22.3.2016)
 
 - New public api:

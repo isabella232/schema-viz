@@ -191,7 +191,8 @@
                           :style "filled"
                           :fillcolor "#fff0cd"
                           :color "#000000"})
-        (dot-node "edge" {:arrowhead "diamond"})]
+        (dot-node "edge" {:dir "back"
+                          :arrowtail "diamond"})]
        (mapv (partial dot-class options) definitions)
        (mapv dot-relation relations)])))
 

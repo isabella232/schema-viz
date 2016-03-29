@@ -167,7 +167,8 @@
 (defn- wrap-escapes [x] (str/escape x {\> ">", \< "<", \" "\\\""}))
 
 (defn- dot-relation [[from to]]
-  (str (wrap-quotes (s/schema-name from)) " -> " (wrap-quotes (s/schema-name to))))
+  (str (wrap-quotes (s/schema-name from)) " -> " (wrap-quotes (s/schema-name to))
+       "[arrowtail=" (if (-> to meta ::sub-schema?) "diamond" "odiamond") "]"))
 
 (defn- dot-node [node data]
   (str node " [" (str/join ", " (map (fn [[k v]] (str (name k) "=" (pr-str v))) data)) "]"))
@@ -192,7 +193,7 @@
                           :fillcolor "#fff0cd"
                           :color "#000000"})
         (dot-node "edge" {:dir "back"
-                          :arrowtail "diamond"})]
+                          :arrowtail "none"})]
        (mapv (partial dot-class options) definitions)
        (mapv dot-relation relations)])))
 

@@ -1,4 +1,4 @@
-(defproject metosin/schema-viz "0.1.0"
+(defproject metosin/schema-viz "0.1.1"
   :description "Schema visualization using graphviz"
   :url "https://github.com/metosin/schema-viz"
   :license {:name "Eclipse Public License"

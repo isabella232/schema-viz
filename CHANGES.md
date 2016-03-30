@@ -1,4 +1,7 @@
-## Unreleased
+## 0.1.1 (30.3.2016)
+
+- Arrowhead on correct side of the relation, fixes [#7](https://github.com/metosin/schema-viz/issues/7) by [Christoph Frick](https://github.com/christoph-frick).
+- Sub-schemas are composed, while referenced schemas are aggregated, related to [#7](https://github.com/metosin/schema-viz/issues/7) by [Christoph Frick](https://github.com/christoph-frick).
 
 - update dependencies:
 

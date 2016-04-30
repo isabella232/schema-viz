@@ -1,3 +1,11 @@
+## Unreleased
+
+* updated dependencies:
+
+```clj
+[prismatic/schema "1.1.1"] is available but we use "1.1.0"
+```
+
 ## 0.1.1 (30.3.2016)
 
 - Arrowhead on correct side of the relation, fixes [#7](https://github.com/metosin/schema-viz/issues/7) by [Christoph Frick](https://github.com/christoph-frick).
